@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
+
 
 //in order to create model methods/instance methods you need to use a schema
 var UserSchema = new mongoose.Schema({
@@ -69,6 +71,22 @@ UserSchema.statics.findByToken = function (token){
     'tokens.access': 'auth'
   });
 };
+
+//mongoose middleware, runs before save
+UserSchema.pre('save', function (next){
+  var user = this;
+
+  if(user.isModified('password')){ //only hash password if it is changing
+    bcrypt.genSalt(10, (err, salt) => {
+      bcrypt.hash(user.password, salt, (error, hash) => {
+        user.password = hash;
+        next();
+      });
+    });
+  } else {
+    next();
+  }
+});
 
 var User = mongoose.model('User', UserSchema);
 
